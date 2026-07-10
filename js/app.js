@@ -48,13 +48,13 @@ async function fetchData() {
         return;
     }
 
-    // 1. Fetch Slots (Filter out past slots)
+    // 1. Fetch Slots (Filter out past slots and slots that have already started)
     const now = dayjs().toISOString();
     const { data: slots } = await supabaseClient
         .from('slots')
         .select('*, reservations(count)')
         .eq('is_cancelled', false)
-        .gt('end_time', now) // End time hasn't passed
+        .gt('start_time', now) // Start time hasn't passed
         .order('start_time', { ascending: true });
 
     window.allSlots = slots || [];

@@ -191,21 +191,12 @@ function renderReservation(res) {
             `;
             resView.appendChild(actionContainer);
 
-        } else if (statusText === '開催中' || statusText === '予約確定') {
+        } else {
+            // Reserved or In-session but not checked in
             document.getElementById('cancel-btn').classList.remove('hidden');
             document.getElementById('qrcode').classList.remove('hidden', 'opacity-20', 'grayscale');
         }
-            
-            // Remove previous action buttons if any
-            const prev = resView.querySelector('.mt-6');
-            if (prev) prev.remove();
-            resView.appendChild(actionContainer);
-
-        } else {
-            document.getElementById('cancel-btn').classList.remove('hidden');
-            const prev = resView.querySelector('.mt-6');
-            if (prev) prev.remove();
-        }
+        
         lucide.createIcons();
     } else {
         resView.classList.add('hidden');
@@ -249,7 +240,7 @@ async function handleReserve(slotId) {
     qrContainer.innerHTML = qr.createImgTag(6);
     
     modalTitle.textContent = '予約用QR';
-    const start = new Date(selectedSlot.start_time).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+    const start = dayjs(selectedSlot.start_time).tz("Asia/Tokyo").format('HH:mm');
     modalDesc.innerHTML = `【${start}】の回で予約申請します。<br>このQRコードをスタッフに見せて予約を確定させてください。`;
     
     modal.classList.remove('hidden');
@@ -259,7 +250,7 @@ async function handleCancel() {
     if (!currentReservation) return;
     const start = dayjs(currentReservation.slots.start_time);
     if (start.diff(dayjs(), 'minute') < 30) {
-        alert('30分前を切っているためキャンセルできません。');
+        alert('開始30分前を切っているためキャンセルできません。');
         return;
     }
     if (!confirm('キャンセルしますか？')) return;

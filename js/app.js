@@ -286,9 +286,11 @@ async function handleCancel() {
 
 function setupInteractions() {
     document.getElementById('refresh-btn').onclick = () => {
-        const icon = document.querySelector('#refresh-btn i');
-        icon.classList.add('animate-spin');
-        fetchData().finally(() => icon.classList.remove('animate-spin'));
+        const icon = document.querySelector('#refresh-btn svg') || document.querySelector('#refresh-btn i');
+        if (icon) icon.classList.add('animate-spin');
+        fetchData().finally(() => {
+            if (icon) icon.classList.remove('animate-spin');
+        });
     };
     
     document.getElementById('cancel-btn').onclick = handleCancel;

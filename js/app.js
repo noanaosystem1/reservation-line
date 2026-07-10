@@ -33,6 +33,21 @@ async function init() {
 async function fetchData() {
     if (!userProfile) return;
 
+    // 0. Check Blacklist
+    const { data: ban } = await supabaseClient
+        .from('blacklist')
+        .select('*')
+        .eq('line_user_id', userProfile.userId)
+        .maybeSingle();
+
+    if (ban) {
+        document.getElementById('banned-view').classList.remove('hidden');
+        document.getElementById('reservation-view').classList.add('hidden');
+        document.getElementById('slot-selection-view').classList.add('hidden');
+        document.getElementById('general-qr-btn-container').classList.add('hidden');
+        return;
+    }
+
     // 1. Fetch Slots (Filter out past slots)
     const now = dayjs().toISOString();
     const { data: slots } = await supabaseClient

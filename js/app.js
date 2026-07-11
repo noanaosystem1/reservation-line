@@ -48,13 +48,17 @@ async function fetchData() {
         return;
     }
 
-    // 1. Fetch Slots (Filter out past slots and slots that have already started)
+    // 1. Fetch Slots (Filter for Today, Not started, and using availability view if possible)
     const now = dayjs().toISOString();
+    const endOfDay = dayjs().endOf('day').toISOString();
+    
+    // We use the availability view to get reserved_count efficiently
     const { data: slots } = await supabaseClient
-        .from('slots')
-        .select('*, reservations(count)')
+        .from('slot_availability')
+        .select('*')
         .eq('is_cancelled', false)
-        .gt('start_time', now) // Start time hasn't passed
+        .gt('start_time', now) 
+        .lte('start_time', endOfDay)
         .order('start_time', { ascending: true });
 
     window.allSlots = slots || [];
@@ -96,12 +100,10 @@ function renderSlots(slots) {
     const container = document.getElementById('slots-container');
     container.innerHTML = '';
     
-    // Filter slots to only show those that haven't started yet and aren't full
-    const now = new Date();
+    // Filter slots to only show those that aren't full (started/today already handled by fetch)
     const availableSlots = slots.filter(slot => {
-        const start = new Date(slot.start_time);
-        const remaining = slot.capacity - (slot.reservations[0]?.count || 0);
-        return start > now && remaining > 0;
+        const remaining = slot.capacity - (slot.reserved_count || 0);
+        return remaining > 0;
     });
 
     if (availableSlots.length === 0) {
@@ -110,7 +112,7 @@ function renderSlots(slots) {
     }
 
     availableSlots.forEach(slot => {
-        const remaining = slot.capacity - (slot.reservations[0]?.count || 0);
+        const remaining = slot.capacity - (slot.reserved_count || 0);
         const isFull = remaining <= 0;
         const start = dayjs(slot.start_time).tz("Asia/Tokyo").format('HH:mm');
         const end = dayjs(slot.end_time).tz("Asia/Tokyo").format('HH:mm');
@@ -151,7 +153,8 @@ function renderReservation(res) {
         const end = dayjs(res.slots.end_time).tz("Asia/Tokyo");
         
         let statusText = '予約確定';
-        if (res.status === 'checked_in') statusText = now.isAfter(end) ? '終了' : '体験中';
+        if (res.status === 'finished') statusText = '終了';
+        else if (res.status === 'checked_in') statusText = now.isAfter(end) ? '終了' : '体験中';
         else if (now.isAfter(end)) statusText = '終了';
         else if (now.isAfter(start)) statusText = '開催中';
         

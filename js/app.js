@@ -36,7 +36,7 @@ async function fetchData() {
     // 0. Check Blacklist
     const { data: ban } = await supabaseClient
         .from('blacklist')
-        .select('*')
+        .select('line_user_id')
         .eq('line_user_id', userProfile.userId)
         .maybeSingle();
 
@@ -55,7 +55,7 @@ async function fetchData() {
     // We use the availability view to get reserved_count efficiently
     const { data: slots } = await supabaseClient
         .from('slot_availability')
-        .select('*')
+        .select('id, start_time, end_time, capacity, reserved_count')
         .eq('is_cancelled', false)
         .gt('start_time', now) 
         .lte('start_time', endOfDay)
@@ -67,7 +67,7 @@ async function fetchData() {
     // 2. Fetch Reservation
     const { data: res } = await supabaseClient
         .from('reservations')
-        .select('*, slots(*)')
+        .select('id, status, reception_number, qr_code_token, experience_url, slot_id, slots(start_time, end_time)')
         .eq('line_user_id', userProfile.userId)
         .not('status', 'eq', 'cancelled')
         .order('created_at', { ascending: false })
@@ -80,7 +80,7 @@ async function fetchData() {
     // 3. Fetch Notifications
     const { data: notes } = await supabaseClient
         .from('notifications')
-        .select('*')
+        .select('message, is_urgent, created_at')
         .or(`slot_id.is.null,slot_id.eq.${res?.slot_id || '00000000-0000-0000-0000-000000000000'}`)
         .order('created_at', { ascending: false })
         .limit(3);
@@ -90,7 +90,7 @@ async function fetchData() {
     // 4. Fetch Global Settings (Finished URL)
     const { data: settings } = await supabaseClient
         .from('global_settings')
-        .select('*')
+        .select('value')
         .eq('key', 'finished_url')
         .maybeSingle();
     window.finishedUrl = settings?.value || 'https://example.com/finished';
